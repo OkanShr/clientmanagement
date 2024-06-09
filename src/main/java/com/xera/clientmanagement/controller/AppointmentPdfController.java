@@ -21,6 +21,7 @@ public class AppointmentPdfController {
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @PostMapping("{appointmentId}/upload")
     public ResponseEntity<String> uploadAppointmentPdf(@RequestParam("file") MultipartFile file,
+                                                       @RequestParam("file_type") String file_type,
                                                        @PathVariable("appointmentId") Long appointmentId,
                                                        @RequestHeader("Authorization") String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -30,7 +31,7 @@ public class AppointmentPdfController {
         String bearerToken = authorizationHeader.substring(7);
 
         try {
-            appointmentPdfService.uploadAppointmentPdf(appointmentId, file, bearerToken);
+            appointmentPdfService.uploadAppointmentPdf(appointmentId, file, file_type, bearerToken);
             String message = String.format("PDF '%s' uploaded successfully for appointment ID: %d", file.getOriginalFilename(), appointmentId);
             return ResponseEntity.ok(message);
         } catch (Exception e) {

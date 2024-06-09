@@ -91,11 +91,12 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     }
 
     @Override
-    public void uploadAppointmentPdf(Long appointmentId, MultipartFile file, String bearerToken) {
+    public void uploadAppointmentPdf(Long appointmentId, MultipartFile file, String file_type, String bearerToken) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
         String fileName = file.getOriginalFilename();
+
         try {
             fileStore.save(appointmentId, fileName, Optional.empty(), file.getInputStream(), bearerToken);
         } catch (IOException e) {
@@ -109,6 +110,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
 
         AppointmentPdf appointmentPdf = new AppointmentPdf();
         appointmentPdf.setAppointment(appointment);
+        appointmentPdf.setPdfType(file_type);
         appointmentPdf.setPdfFile(pdfFile);
         appointmentPdfRepository.save(appointmentPdf);
     }
