@@ -1,6 +1,7 @@
 package com.xera.clientmanagement.controller;
 
 import com.xera.clientmanagement.entity.ClientPdf;
+import com.xera.clientmanagement.entity.PdfFile;
 import com.xera.clientmanagement.service.ClientPdfService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ public class ClientPdfController {
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @PostMapping("{clientId}/upload")
     public ResponseEntity<String> uploadClientPdf(@RequestParam("file") MultipartFile file,
+                                                    @RequestParam("type") String type,
                                                   @PathVariable("clientId") Long clientId,
                                                   @RequestHeader("Authorization") String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -30,7 +32,7 @@ public class ClientPdfController {
         String bearerToken = authorizationHeader.substring(7);
 
         try {
-            clientPdfService.uploadClientPdf(clientId, file, bearerToken);
+            clientPdfService.uploadClientPdf(clientId, file, type, bearerToken);
             String message = String.format("PDF '%s' uploaded successfully for client ID: %d", file.getOriginalFilename(), clientId);
             return ResponseEntity.ok(message);
         } catch (Exception e) {
@@ -40,8 +42,8 @@ public class ClientPdfController {
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @GetMapping("{clientId}")
-    public ResponseEntity<List<ClientPdf>> getClientPdfs(@PathVariable("clientId") Long clientId) {
-        List<ClientPdf> clientPdfs = clientPdfService.getClientPdfs(clientId);
+    public ResponseEntity<List<PdfFile>> getClientPdfs(@PathVariable("clientId") Long clientId) {
+        List<PdfFile> clientPdfs = clientPdfService.getClientPdfs(clientId);
         return ResponseEntity.ok(clientPdfs);
     }
 

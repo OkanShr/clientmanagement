@@ -41,36 +41,28 @@ public class ClientPdfServiceImpl implements ClientPdfService {
     }
 
     @Override
-    public List<ClientPdf> getClientPdfs(Long clientId) {
+    public List<PdfFile> getClientPdfs(Long clientId) {
         // Retrieve client PDFs metadata from your database/repository
         List<ClientPdf> clientPdfsMetadata = clientPdfRepository.findByClient_ClientId(clientId);
 
         // Retrieve PDFs from Amazon S3 based on the metadata
-        List<ClientPdf> clientPdfs = new ArrayList<>();
+        List<PdfFile> pdfFiles = new ArrayList<>();
         for (ClientPdf clientPdfMetadata : clientPdfsMetadata) {
-            // Create a new ClientPdf object
-            ClientPdf clientPdf = new ClientPdf();
-            // Set the file name
-            clientPdf.setId(clientPdfMetadata.getId());
-            clientPdf.setPdfFile(clientPdfMetadata.getPdfFile());
+            // Get the PdfFile object
+            PdfFile pdfFile = clientPdfMetadata.getPdfFile();
 
-            // Set the client object
-            Client client = clientRepository.findById(clientId)
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
-            clientPdf.setClient(client);
-
-            // Construct the key using clientId
-            String key = clientId + "/pdfs/" + clientPdfMetadata.getPdfFile().getFileName(); // Use clientId in the key
+            // Construct the key using clientId and file name
+            String key = clientId + "/pdfs/" + pdfFile.getFileName();
 
             // Generate a pre-signed URL for the PDF
-            String pdfUrl = generatePresignedUrl(key); // Pass the key to generatePresignedUrl
-            clientPdfMetadata.getPdfFile().setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
+            String pdfUrl = generatePresignedUrl(key);
+            pdfFile.setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
 
-            // Add the client PDF to the list
-            clientPdfs.add(clientPdf);
+            // Add the PdfFile to the list
+            pdfFiles.add(pdfFile);
         }
 
-        return clientPdfs;
+        return pdfFiles;
     }
 
     private String generatePresignedUrl(String key) {
@@ -91,11 +83,12 @@ public class ClientPdfServiceImpl implements ClientPdfService {
 
 
     @Override
-    public void uploadClientPdf(Long clientId, MultipartFile file, String bearerToken) {
+    public void uploadClientPdf(Long clientId, MultipartFile file, String type, String bearerToken) {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("Client not found"));
 
         String fileName = file.getOriginalFilename();
+
         try {
             fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(), bearerToken);
         } catch (IOException e) {
@@ -104,6 +97,7 @@ public class ClientPdfServiceImpl implements ClientPdfService {
 
         PdfFile pdfFile = new PdfFile();
         pdfFile.setFileName(fileName);
+        pdfFile.setType(type);
         pdfFile.setFilePath(clientId + "/pdfs/" + fileName);
         pdfFileRepository.save(pdfFile);
 

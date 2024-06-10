@@ -42,33 +42,25 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     }
 
     @Override
-    public List<AppointmentPdf> getAppointmentPdfs(Long appointmentId) {
+    public List<PdfFile> getAppointmentPdfs(Long appointmentId) {
         // Retrieve appointment PDFs metadata from your database/repository
         List<AppointmentPdf> appointmentPdfsMetadata = appointmentPdfRepository.findByAppointment_AppointmentId(appointmentId);
 
         // Retrieve PDFs from Amazon S3 based on the metadata
-        List<AppointmentPdf> appointmentPdfs = new ArrayList<>();
+        List<PdfFile> appointmentPdfs = new ArrayList<>();
         for (AppointmentPdf appointmentPdfMetadata : appointmentPdfsMetadata) {
             // Create a new AppointmentPdf object
-            AppointmentPdf appointmentPdf = new AppointmentPdf();
-            // Set the file name
-            appointmentPdf.setId(appointmentPdfMetadata.getId());
-            appointmentPdf.setPdfFile(appointmentPdfMetadata.getPdfFile());
+            PdfFile pdfFile = appointmentPdfMetadata.getPdfFile();
 
-            // Set the appointment object
-            Appointment appointment = appointmentRepository.findById(appointmentId)
-                    .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
-            appointmentPdf.setAppointment(appointment);
-
-            // Construct the key using appointmentId
-            String key = appointmentId + "/pdfs/" + appointmentPdfMetadata.getPdfFile().getFileName(); // Use appointmentId in the key
+            // Construct the key using appointmentId and file name
+            String key = appointmentId + "/pdfs/" + pdfFile.getFileName(); // Use appointmentId in the key
 
             // Generate a pre-signed URL for the PDF
             String pdfUrl = generatePresignedUrl(key); // Pass the key to generatePresignedUrl
-            appointmentPdfMetadata.getPdfFile().setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
+            pdfFile.setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
 
             // Add the appointment PDF to the list
-            appointmentPdfs.add(appointmentPdf);
+            appointmentPdfs.add(pdfFile);
         }
 
         return appointmentPdfs;

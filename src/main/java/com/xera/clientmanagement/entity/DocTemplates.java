@@ -19,5 +19,4 @@ public class DocTemplates {
     private Long documentId;
     private String docname;
 
-
 }

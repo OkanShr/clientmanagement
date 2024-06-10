@@ -21,7 +21,7 @@ public class PdfFile {
     private Long pdfId;
 
     private String fileName;
-
+    private String type;
     private String filePath;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
