@@ -1,6 +1,7 @@
 package com.xera.clientmanagement.controller;
 
 import com.xera.clientmanagement.entity.AppointmentPdf;
+import com.xera.clientmanagement.entity.PdfFile;
 import com.xera.clientmanagement.service.AppointmentPdfService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,8 +42,8 @@ public class AppointmentPdfController {
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @GetMapping("{appointmentId}")
-    public ResponseEntity<List<AppointmentPdf>> getAppointmentPdfs(@PathVariable("appointmentId") Long appointmentId) {
-        List<AppointmentPdf> appointmentPdfs = appointmentPdfService.getAppointmentPdfs(appointmentId);
+    public ResponseEntity<List<PdfFile>> getAppointmentPdfs(@PathVariable("appointmentId") Long appointmentId) {
+        List<PdfFile> appointmentPdfs = appointmentPdfService.getAppointmentPdfs(appointmentId);
         return ResponseEntity.ok(appointmentPdfs);
     }
 
