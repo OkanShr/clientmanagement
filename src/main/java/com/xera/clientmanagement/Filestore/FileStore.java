@@ -45,9 +45,7 @@ public class FileStore {
             });
             metadata.setContentLength(inputStream.available());
             s3.putObject("xeramedimages", s3Path, inputStream, metadata);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to store file to S3: " + e.getMessage(), e);
-        } catch (SdkClientException e) {
+        } catch (IOException | SdkClientException e) {
             throw new IllegalStateException("Failed to store file to S3: " + e.getMessage(), e);
         } finally {
             try {
@@ -73,6 +71,6 @@ public class FileStore {
     private boolean isPDF(String fileName) {
         System.out.println("Checking file extension...");
         String lowerCaseName = fileName.toLowerCase();
-        return lowerCaseName.endsWith(".pdf");
+        return lowerCaseName.endsWith(".pdf") || lowerCaseName.endsWith(".docx");
     }
 }
