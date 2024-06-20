@@ -1,14 +1,17 @@
 package com.xera.clientmanagement.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,9 +33,14 @@ public class Client {
     @Column(name = "last_name")
     private String lastName;
 
-    private String phoneNumber;
-
     private String gender;
+
+    @Column(name = "birth_date")
+    @DateTimeFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+    private LocalDate birthDate;
+
+    private String phoneNumber;
 
     @Column(nullable = false, unique = true)
     private String email;

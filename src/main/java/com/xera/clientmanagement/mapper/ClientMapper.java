@@ -11,6 +11,7 @@ public class ClientMapper {
                 client.getLastName(),
                 client.getEmail(),
                 client.getGender(),
+                client.getBirthDate(),
                 client.getPhoneNumber(),
                 client.getDoctor().getUserId()
 

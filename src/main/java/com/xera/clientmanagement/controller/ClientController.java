@@ -2,7 +2,10 @@ package com.xera.clientmanagement.controller;
 
 import com.xera.clientmanagement.dto.ClientDto;
 import com.xera.clientmanagement.entity.Client;
+import com.xera.clientmanagement.exception.DuplicateEmailException;
+import com.xera.clientmanagement.exception.ResourceNotFoundException;
 import com.xera.clientmanagement.service.ClientService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.aspectj.apache.bcel.generic.InstructionConstants;
 import org.springframework.http.HttpStatus;
@@ -21,8 +24,12 @@ public class ClientController {
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<Client> createClient(@RequestBody ClientDto clientDto) {
-        Client client = clientService.createClient(clientDto);
-        return new ResponseEntity<>(client, HttpStatus.CREATED);
+        try {
+            Client client = clientService.createClient(clientDto);
+            return new ResponseEntity<>(client, HttpStatus.CREATED);
+        } catch (DuplicateEmailException e){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+        }
     }
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")

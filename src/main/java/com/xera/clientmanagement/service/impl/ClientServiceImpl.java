@@ -3,6 +3,7 @@ package com.xera.clientmanagement.service.impl;
 import com.xera.clientmanagement.dto.ClientDto;
 import com.xera.clientmanagement.entity.Client;
 import com.xera.clientmanagement.entity.Doctor;
+import com.xera.clientmanagement.exception.DuplicateEmailException;
 import com.xera.clientmanagement.exception.ResourceNotFoundException;
 import com.xera.clientmanagement.mapper.ClientMapper;
 import com.xera.clientmanagement.repository.ClientRepository;
@@ -12,6 +13,7 @@ import com.xera.clientmanagement.service.JwtService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -27,9 +29,6 @@ import java.util.stream.Collectors;
 public class ClientServiceImpl implements ClientService {
     private ClientRepository clientRepository;
     private UserRepository userRepository;
-    private JwtService jwtService;
-
-
 
 
     @Override
@@ -43,8 +42,10 @@ public class ClientServiceImpl implements ClientService {
 
             client.setDoctor(doctor);
             return clientRepository.save(client);
-        }catch (EntityNotFoundException e){
-            throw new ResourceNotFoundException("Doctor not found");
+        } catch (DataIntegrityViolationException e) {
+        throw new DuplicateEmailException("Email already taken!");
+        } catch (Exception e){
+            throw new ResourceNotFoundException("Something Went wrong while creating client");
         }
 
     }

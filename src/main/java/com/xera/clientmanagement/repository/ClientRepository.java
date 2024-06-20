@@ -11,7 +11,6 @@ import java.util.List;
 
 public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findByDoctor(Doctor doctor);
-
     @Query("SELECT COUNT(c) FROM Client c WHERE c.createdAt >= :date")
     long countClientsCreatedSince(@Param("date") LocalDateTime date);
 

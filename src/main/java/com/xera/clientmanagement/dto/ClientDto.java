@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.joda.time.DateTime;
+
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -16,6 +19,8 @@ public class ClientDto {
     private String lastName;
     private String email;
     private String gender;
+    private LocalDate birthDate;
     private String phoneNumber;
     private Long doctorId;
-}
+    }
+
