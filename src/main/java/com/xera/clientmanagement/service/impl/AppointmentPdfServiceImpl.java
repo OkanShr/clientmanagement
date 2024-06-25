@@ -126,7 +126,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
-        AppointmentPdf appointmentPdf = appointmentPdfRepository.findById(pdfId)
+        AppointmentPdf appointmentPdf = appointmentPdfRepository.findByPdfFile_PdfId(pdfId)
                 .orElseThrow(() -> new IllegalArgumentException("Pdf not found"));
 
         if (!appointmentPdf.getAppointment().getAppointmentId().equals(appointmentId)) {

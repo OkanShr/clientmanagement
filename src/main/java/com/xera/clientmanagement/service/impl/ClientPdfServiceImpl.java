@@ -113,9 +113,10 @@ public class ClientPdfServiceImpl implements ClientPdfService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("Client not found"));
 
-        ClientPdf clientPdf = clientPdfRepository.findById(pdfId)
+        ClientPdf clientPdf = clientPdfRepository.findByPdfFile_PdfId(pdfId)
                 .orElseThrow(() -> new IllegalArgumentException("Pdf not found"));
 
+        // Ensure the PDF belongs to the specified client
         if (!clientPdf.getClient().getClientId().equals(clientId)) {
             throw new IllegalArgumentException("Pdf does not belong to the client");
         }
