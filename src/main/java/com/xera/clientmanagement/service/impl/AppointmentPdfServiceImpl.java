@@ -83,6 +83,19 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     }
 
     @Override
+    public List<PdfFile> getAllAppointmentPdfsByClientId(Long clientId) {
+        List<Appointment> appointments = appointmentRepository.findAllByClient_ClientId(clientId);
+        List<PdfFile> allAppointmentPdfs = new ArrayList<>();
+
+        for (Appointment appointment : appointments) {
+            List<PdfFile> appointmentPdfs = getAppointmentPdfs(appointment.getAppointmentId());
+            allAppointmentPdfs.addAll(appointmentPdfs);
+        }
+
+        return allAppointmentPdfs;
+    }
+
+    @Override
     public void uploadAppointmentPdf(Long appointmentId, MultipartFile file, String file_type, String bearerToken) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));

@@ -47,6 +47,13 @@ public class AppointmentPdfController {
         return ResponseEntity.ok(appointmentPdfs);
     }
 
+    @PreAuthorize("hasAuthority('USER', 'ADMIN')")
+    @GetMapping("/by-client/{clientId}")
+    public ResponseEntity<List<PdfFile>> getAllAppointmentPdfsByClientId(@PathVariable("clientId") Long clientId) {
+        List<PdfFile> appointmentPdfs = appointmentPdfService.getAllAppointmentPdfsByClientId(clientId);
+        return ResponseEntity.ok(appointmentPdfs);
+    }
+
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @DeleteMapping("{appointmentId}/delete/{pdfId}")
     public ResponseEntity<String> deleteAppointmentPdf(@PathVariable("appointmentId") Long appointmentId,
