@@ -96,7 +96,8 @@ public class ClientImageServiceImpl implements ClientImageService {
         // Save image to file store
         String fileName = file.getOriginalFilename();
         try {
-            fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(), bearerToken);
+            fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(),
+                    false, Optional.empty());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to store file: " + fileName, e);
         }

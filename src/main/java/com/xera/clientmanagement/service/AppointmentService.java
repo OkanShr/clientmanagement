@@ -17,7 +17,7 @@ public interface AppointmentService {
 
     AppointmentDto updateAppointment(Long appointmentId, AppointmentDto updatedAppointment);
 
-    void deleteAppointment(Long appointmentId);
+    void deleteAppointment(Long appointmentId, Long clientId);
 
     Map<String, Long> getAppointmentsCountByType();
 

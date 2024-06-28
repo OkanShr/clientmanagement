@@ -20,9 +20,10 @@ public class AppointmentPdfController {
     private final AppointmentPdfService appointmentPdfService;
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
-    @PostMapping("{appointmentId}/upload")
+    @PostMapping("{clientId}/{appointmentId}/upload")
     public ResponseEntity<String> uploadAppointmentPdf(@RequestParam("file") MultipartFile file,
                                                        @RequestParam("type") String type,
+                                                       @PathVariable("clientId") Long clientId,
                                                        @PathVariable("appointmentId") Long appointmentId,
                                                        @RequestHeader("Authorization") String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -32,18 +33,21 @@ public class AppointmentPdfController {
         String bearerToken = authorizationHeader.substring(7);
 
         try {
-            appointmentPdfService.uploadAppointmentPdf(appointmentId, file, type, bearerToken);
-            String message = String.format("PDF '%s' uploaded successfully for appointment ID: %d", file.getOriginalFilename(), appointmentId);
+            appointmentPdfService.uploadAppointmentPdf(appointmentId, clientId, file, type, bearerToken);
+            String message = String.format("PDF '%s' uploaded successfully for appointment ID: %d",
+                    file.getOriginalFilename(), appointmentId);
             return ResponseEntity.ok(message);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload PDF: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload PDF: " +
+                    e.getMessage());
         }
     }
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
-    @GetMapping("{appointmentId}")
-    public ResponseEntity<List<PdfFile>> getAppointmentPdfs(@PathVariable("appointmentId") Long appointmentId) {
-        List<PdfFile> appointmentPdfs = appointmentPdfService.getAppointmentPdfs(appointmentId);
+    @GetMapping("{clientId}/{appointmentId}")
+    public ResponseEntity<List<PdfFile>> getAppointmentPdfs(@PathVariable("appointmentId") Long appointmentId,
+                                                            @PathVariable("clientId") Long clientId) {
+        List<PdfFile> appointmentPdfs = appointmentPdfService.getAppointmentPdfs(appointmentId, clientId);
         return ResponseEntity.ok(appointmentPdfs);
     }
 
@@ -55,11 +59,12 @@ public class AppointmentPdfController {
     }
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
-    @DeleteMapping("{appointmentId}/delete/{pdfId}")
+    @DeleteMapping("{clientId}/{appointmentId}/delete/{pdfId}")
     public ResponseEntity<String> deleteAppointmentPdf(@PathVariable("appointmentId") Long appointmentId,
+                                                       @PathVariable("clientId") Long clientId,
                                                        @PathVariable("pdfId") Long pdfId) {
         try {
-            appointmentPdfService.deleteAppointmentPdf(appointmentId, pdfId);
+            appointmentPdfService.deleteAppointmentPdf(appointmentId, clientId, pdfId);
             return ResponseEntity.ok("PDF deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete PDF: " + e.getMessage());

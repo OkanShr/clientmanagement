@@ -50,7 +50,7 @@ public class ClientPdfController {
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @DeleteMapping("{clientId}/delete/{pdfId}")
-    public ResponseEntity<String> deleteClientImage(@PathVariable("clientId") Long clientId,
+    public ResponseEntity<String> deleteClientPdf(@PathVariable("clientId") Long clientId,
                                                     @PathVariable("pdfId") Long pdfId) {
         try {
             clientPdfService.deleteClientPdf(clientId, pdfId);

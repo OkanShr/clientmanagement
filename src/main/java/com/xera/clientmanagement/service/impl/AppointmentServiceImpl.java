@@ -1,13 +1,12 @@
 package com.xera.clientmanagement.service.impl;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.xera.clientmanagement.dto.AppointmentDto;
 import com.xera.clientmanagement.entity.*;
 import com.xera.clientmanagement.exception.ResourceNotFoundException;
 import com.xera.clientmanagement.mapper.AppointmentMapper;
-import com.xera.clientmanagement.repository.AppointmentRepository;
-import com.xera.clientmanagement.repository.ClientRepository;
-import com.xera.clientmanagement.repository.PdfFileRepository;
-import com.xera.clientmanagement.repository.UserRepository;
+import com.xera.clientmanagement.repository.*;
 import com.xera.clientmanagement.service.AppointmentService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -27,8 +26,12 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
     private AppointmentRepository appointmentRepository;
+    private final AppointmentPdfRepository appointmentPdfRepository;
+    private final PdfFileRepository pdfFileRepository;
     private ClientRepository clientRepository;
     private UserRepository userRepository;
+    private final AmazonS3 amazonS3;
+
 
     @Override
     @Transactional
@@ -105,10 +108,22 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public void deleteAppointment(Long appointmentId){
-        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(
-                () -> new ResourceNotFoundException("Appointment Not Found!")
-        );
+    public void deleteAppointment(Long appointmentId, Long clientId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment Not Found!"));
+
+        // Retrieve all appointmentPdfs associated with the appointment
+        List<AppointmentPdf> appointmentPdfs = appointmentPdfRepository.findByAppointment_AppointmentId(appointmentId);
+
+        // Delete all associated PDFs from S3 and repositories
+        for (AppointmentPdf appointmentPdf : appointmentPdfs) {
+            String key = buildS3Key(appointmentId, clientId, appointmentPdf.getPdfFile().getFileName());
+            amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
+            appointmentPdfRepository.delete(appointmentPdf);
+            pdfFileRepository.delete(appointmentPdf.getPdfFile());
+        }
+
+        // Finally, delete the appointment
         appointmentRepository.deleteById(appointmentId);
     }
 
@@ -123,6 +138,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentsCountByType;
     }
 
+    private String buildS3Key(Long appointmentId, Long clientId, String fileName) {
+        return clientId + "/pdfs/" + appointmentId + "/" + fileName;
+    }
 
 
 

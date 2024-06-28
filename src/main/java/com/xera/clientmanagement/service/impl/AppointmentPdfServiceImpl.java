@@ -42,44 +42,19 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     }
 
     @Override
-    public List<PdfFile> getAppointmentPdfs(Long appointmentId) {
-        // Retrieve appointment PDFs metadata from your database/repository
+    public List<PdfFile> getAppointmentPdfs(Long appointmentId, Long clientId) {
         List<AppointmentPdf> appointmentPdfsMetadata = appointmentPdfRepository.findByAppointment_AppointmentId(appointmentId);
-
-        // Retrieve PDFs from Amazon S3 based on the metadata
         List<PdfFile> appointmentPdfs = new ArrayList<>();
+
         for (AppointmentPdf appointmentPdfMetadata : appointmentPdfsMetadata) {
-            // Create a new AppointmentPdf object
             PdfFile pdfFile = appointmentPdfMetadata.getPdfFile();
-
-            // Construct the key using appointmentId and file name
-            String key = appointmentId + "/pdfs/" + pdfFile.getFileName(); // Use appointmentId in the key
-
-            // Generate a pre-signed URL for the PDF
-            String pdfUrl = generatePresignedUrl(key); // Pass the key to generatePresignedUrl
-            pdfFile.setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
-
-            // Add the appointment PDF to the list
+            String key = buildS3Key(appointmentId, clientId, pdfFile.getFileName());
+            String pdfUrl = generatePresignedUrl(key);
+            pdfFile.setFilePath(pdfUrl);
             appointmentPdfs.add(pdfFile);
         }
 
         return appointmentPdfs;
-    }
-
-    private String generatePresignedUrl(String key) {
-        // Generate a pre-signed URL for the image
-        String bucketName = "xeramedimages"; // Bucket name
-        Date expiration = new Date(System.currentTimeMillis() + 3600000); // Expiry time: 1 hour from now
-
-        GeneratePresignedUrlRequest generatePresignedUrlRequest =
-                new GeneratePresignedUrlRequest(bucketName, key)
-                        .withMethod(HttpMethod.GET)
-                        .withExpiration(expiration);
-
-        // Generate the pre-signed URL
-        URL preSignedUrl = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
-
-        return preSignedUrl.toString();
     }
 
     @Override
@@ -88,7 +63,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
         List<PdfFile> allAppointmentPdfs = new ArrayList<>();
 
         for (Appointment appointment : appointments) {
-            List<PdfFile> appointmentPdfs = getAppointmentPdfs(appointment.getAppointmentId());
+            List<PdfFile> appointmentPdfs = getAppointmentPdfs(appointment.getAppointmentId(), clientId);
             allAppointmentPdfs.addAll(appointmentPdfs);
         }
 
@@ -96,33 +71,32 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     }
 
     @Override
-    public void uploadAppointmentPdf(Long appointmentId, MultipartFile file, String file_type, String bearerToken) {
+    public void uploadAppointmentPdf(Long appointmentId, Long clientId, MultipartFile file, String type, String bearerToken) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
         String fileName = file.getOriginalFilename();
 
         try {
-            fileStore.save(appointmentId, fileName, Optional.empty(), file.getInputStream(), bearerToken);
+            fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(), true, Optional.of(appointmentId));
         } catch (IOException e) {
             throw new IllegalStateException("Failed to store PDF: " + fileName, e);
         }
 
         PdfFile pdfFile = new PdfFile();
         pdfFile.setFileName(fileName);
-        pdfFile.setFilePath(appointmentId + "/pdfs/" + fileName);
+        pdfFile.setType(type);
+        pdfFile.setFilePath(clientId + "/pdfs/" + appointmentId + "/" + fileName);
         pdfFileRepository.save(pdfFile);
 
         AppointmentPdf appointmentPdf = new AppointmentPdf();
         appointmentPdf.setAppointment(appointment);
-        appointmentPdf.setPdfType(file_type);
         appointmentPdf.setPdfFile(pdfFile);
         appointmentPdfRepository.save(appointmentPdf);
     }
 
     @Override
-    public void deleteAppointmentPdf(Long appointmentId, Long pdfId) {
-        // Retrieve the appointment and PDF metadata
+    public void deleteAppointmentPdf(Long appointmentId, Long clientId, Long pdfId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
@@ -133,14 +107,25 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
             throw new IllegalArgumentException("Pdf does not belong to the appointment");
         }
 
-        // Construct the key using appointmentId and PDF file name
-        String key = appointmentId + "/pdfs/" + appointmentPdf.getPdfFile().getFileName();
-
-        // Delete the PDF from S3
+        String key = buildS3Key(appointmentId, clientId, appointmentPdf.getPdfFile().getFileName());
         amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
 
-        // Remove PDF metadata from the database
         appointmentPdfRepository.delete(appointmentPdf);
         pdfFileRepository.delete(appointmentPdf.getPdfFile());
+    }
+
+    private String generatePresignedUrl(String key) {
+        Date expiration = new Date(System.currentTimeMillis() + 3600000); // 1 hour from now
+        GeneratePresignedUrlRequest generatePresignedUrlRequest =
+                new GeneratePresignedUrlRequest("xeramedimages", key)
+                        .withMethod(HttpMethod.GET)
+                        .withExpiration(expiration);
+
+        URL preSignedUrl = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
+        return preSignedUrl.toString();
+    }
+
+    private String buildS3Key(Long appointmentId, Long clientId, String fileName) {
+        return clientId + "/pdfs/" + appointmentId + "/" + fileName;
     }
 }

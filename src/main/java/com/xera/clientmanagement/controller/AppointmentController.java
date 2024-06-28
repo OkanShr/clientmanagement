@@ -51,9 +51,10 @@ public class AppointmentController {
     }
 
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
-    @DeleteMapping("{id}")
-    public ResponseEntity<String> deleteAppointment(@PathVariable("id") Long appointmentId){
-        appointmentService.deleteAppointment(appointmentId);
+    @DeleteMapping("{clientId}/{appointmentId}")
+    public ResponseEntity<String> deleteAppointment(@PathVariable("appointmentId") Long appointmentId,
+                                                    @PathVariable("clientId") Long clientId){
+        appointmentService.deleteAppointment(appointmentId, clientId);
         return ResponseEntity.ok("Appointment Deleted Successfully");
     }
 

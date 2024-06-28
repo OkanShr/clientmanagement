@@ -21,7 +21,8 @@ public class FileStore {
         this.s3 = s3;
     }
 
-    public void save(Long clientId, String fileName, Optional<Map<String, String>> optionalMetadata, InputStream inputStream, String bearerToken) {
+    public void save(Long clientId, String fileName, Optional<Map<String, String>> optionalMetadata,
+                     InputStream inputStream, Boolean isAppointmentPdf, Optional<Long> optionalAppointmentId) {
         // Determine the folder based on the file type
         String folder;
         if (isImage(fileName)) {
@@ -29,11 +30,17 @@ public class FileStore {
         } else if (isPDF(fileName)) {
             folder = "pdfs";
         } else {
-            throw new IllegalArgumentException("Unsupported file type" + fileName);
+            throw new IllegalArgumentException("Unsupported file type: " + fileName);
         }
 
         // Construct the S3 path
-        String s3Path = clientId + "/" + folder + "/" + fileName;
+        String s3Path;
+        if (isAppointmentPdf) {
+            Long appointmentId = optionalAppointmentId.orElseThrow(() -> new IllegalArgumentException("Appointment ID is required for appointment PDFs"));
+            s3Path = clientId + "/" + folder + "/" + appointmentId + "/" + fileName;
+        } else {
+            s3Path = clientId + "/" + folder + "/" + fileName;
+        }
 
         // Upload the object to Amazon S3
         try {

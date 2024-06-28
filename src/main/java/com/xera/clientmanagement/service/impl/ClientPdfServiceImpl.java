@@ -15,15 +15,19 @@ import com.xera.clientmanagement.service.ClientPdfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ClientPdfServiceImpl implements ClientPdfService {
+
+    private static final String BUCKET_NAME = "xeramedimages";
+    private static final long URL_EXPIRATION_TIME = 3600000; // 1 hour
 
     private final AmazonS3 amazonS3;
     private final FileStore fileStore;
@@ -32,7 +36,8 @@ public class ClientPdfServiceImpl implements ClientPdfService {
     private final PdfFileRepository pdfFileRepository;
 
     @Autowired
-    public ClientPdfServiceImpl(AmazonS3 amazonS3, FileStore fileStore, ClientRepository clientRepository, ClientPdfRepository clientPdfRepository, PdfFileRepository pdfFileRepository) {
+    public ClientPdfServiceImpl(AmazonS3 amazonS3, FileStore fileStore, ClientRepository clientRepository,
+                                ClientPdfRepository clientPdfRepository, PdfFileRepository pdfFileRepository) {
         this.amazonS3 = amazonS3;
         this.fileStore = fileStore;
         this.clientRepository = clientRepository;
@@ -42,45 +47,30 @@ public class ClientPdfServiceImpl implements ClientPdfService {
 
     @Override
     public List<PdfFile> getClientPdfs(Long clientId) {
-        // Retrieve client PDFs metadata from your database/repository
-        List<ClientPdf> clientPdfsMetadata = clientPdfRepository.findByClient_ClientId(clientId);
+        return clientPdfRepository.findByClient_ClientId(clientId).stream()
+                .map(this::mapToPdfFileWithPresignedUrl)
+                .collect(Collectors.toList());
+    }
 
-        // Retrieve PDFs from Amazon S3 based on the metadata
-        List<PdfFile> pdfFiles = new ArrayList<>();
-        for (ClientPdf clientPdfMetadata : clientPdfsMetadata) {
-            // Get the PdfFile object
-            PdfFile pdfFile = clientPdfMetadata.getPdfFile();
+    private PdfFile mapToPdfFileWithPresignedUrl(ClientPdf clientPdf) {
+        PdfFile pdfFile = clientPdf.getPdfFile();
+        String key = generateS3Key(clientPdf.getClient().getClientId(), pdfFile.getFileName());
+        pdfFile.setFilePath(generatePresignedUrl(key));
+        return pdfFile;
+    }
 
-            // Construct the key using clientId and file name
-            String key = clientId + "/pdfs/" + pdfFile.getFileName();
-
-            // Generate a pre-signed URL for the PDF
-            String pdfUrl = generatePresignedUrl(key);
-            pdfFile.setFilePath(pdfUrl); // Set the pre-signed URL as the PDF URL
-
-            // Add the PdfFile to the list
-            pdfFiles.add(pdfFile);
-        }
-
-        return pdfFiles;
+    private String generateS3Key(Long clientId, String fileName) {
+        return clientId + "/pdfs/" + fileName;
     }
 
     private String generatePresignedUrl(String key) {
-        // Generate a pre-signed URL for the image
-        String bucketName = "xeramedimages"; // Bucket name
-        Date expiration = new Date(System.currentTimeMillis() + 3600000); // Expiry time: 1 hour from now
-
-        GeneratePresignedUrlRequest generatePresignedUrlRequest =
-                new GeneratePresignedUrlRequest(bucketName, key)
-                        .withMethod(HttpMethod.GET)
-                        .withExpiration(expiration);
-
-        // Generate the pre-signed URL
-        URL preSignedUrl = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
-
-        return preSignedUrl.toString();
+        Date expiration = new Date(System.currentTimeMillis() + URL_EXPIRATION_TIME);
+        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(BUCKET_NAME, key)
+                .withMethod(HttpMethod.GET)
+                .withExpiration(expiration);
+        URL url = amazonS3.generatePresignedUrl(request);
+        return url.toString();
     }
-
 
     @Override
     public void uploadClientPdf(Long clientId, MultipartFile file, String type, String bearerToken) {
@@ -90,7 +80,8 @@ public class ClientPdfServiceImpl implements ClientPdfService {
         String fileName = file.getOriginalFilename();
 
         try {
-            fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(), bearerToken);
+            fileStore.save(clientId, fileName, Optional.empty(), file.getInputStream(),
+                    false, Optional.empty());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to store PDF: " + fileName, e);
         }
@@ -98,7 +89,7 @@ public class ClientPdfServiceImpl implements ClientPdfService {
         PdfFile pdfFile = new PdfFile();
         pdfFile.setFileName(fileName);
         pdfFile.setType(type);
-        pdfFile.setFilePath(clientId + "/pdfs/" + fileName);
+        pdfFile.setFilePath(generateS3Key(clientId, fileName));
         pdfFileRepository.save(pdfFile);
 
         ClientPdf clientPdf = new ClientPdf();
@@ -109,25 +100,19 @@ public class ClientPdfServiceImpl implements ClientPdfService {
 
     @Override
     public void deleteClientPdf(Long clientId, Long pdfId) {
-        // Retrieve the client and PDF metadata
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("Client not found"));
 
         ClientPdf clientPdf = clientPdfRepository.findByPdfFile_PdfId(pdfId)
                 .orElseThrow(() -> new IllegalArgumentException("Pdf not found"));
 
-        // Ensure the PDF belongs to the specified client
         if (!clientPdf.getClient().getClientId().equals(clientId)) {
             throw new IllegalArgumentException("Pdf does not belong to the client");
         }
 
-        // Construct the key using clientId and PDF file name
-        String key = clientId + "/pdfs/" + clientPdf.getPdfFile().getFileName();
+        String key = generateS3Key(clientId, clientPdf.getPdfFile().getFileName());
+        amazonS3.deleteObject(new DeleteObjectRequest(BUCKET_NAME, key));
 
-        // Delete the PDF from S3
-        amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
-
-        // Remove PDF metadata from the database
         clientPdfRepository.delete(clientPdf);
         pdfFileRepository.delete(clientPdf.getPdfFile());
     }
