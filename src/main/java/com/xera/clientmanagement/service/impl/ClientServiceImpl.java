@@ -9,6 +9,7 @@ import com.xera.clientmanagement.exception.ResourceNotFoundException;
 import com.xera.clientmanagement.mapper.ClientMapper;
 import com.xera.clientmanagement.repository.*;
 import com.xera.clientmanagement.service.ClientService;
+import com.xera.clientmanagement.utils.encryptionUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -18,7 +19,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class ClientServiceImpl implements ClientService {
-    private static final String BUCKET_NAME = "xeramedimages";
 
+    private static final String BUCKET_NAME = "xeramedimages";
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
@@ -35,6 +35,8 @@ public class ClientServiceImpl implements ClientService {
     private final AppointmentPdfRepository appointmentPdfRepository;
     private final PdfFileRepository pdfFileRepository;
     private final ClientPdfRepository clientPdfRepository;
+    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
+
 
     @Override
     public Client createClient(ClientDto clientDto) {
@@ -45,6 +47,9 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new EntityNotFoundException("Doctor not found"));
 
         client.setDoctor(doctor);
+
+        // Encrypt all fields before saving
+        encryptionUtil.encryptAllFields(client);
 
         try {
             return clientRepository.save(client);
@@ -59,6 +64,10 @@ public class ClientServiceImpl implements ClientService {
     public ClientDto getClientById(Long clientId) {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Client doesn't exist with the given ID: " + clientId));
+
+        // Decrypt all fields after retrieving
+        encryptionUtil.decryptAllFields(client);
+
         return ClientMapper.mapToClientDto(client);
     }
 
@@ -69,7 +78,11 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
         return clientRepository.findByDoctor(doctor).stream()
-                .map(ClientMapper::mapToClientDto)
+                .map(client -> {
+                    // Decrypt all fields for each client
+                    encryptionUtil.decryptAllFields(client);
+                    return ClientMapper.mapToClientDto(client);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -84,6 +97,10 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found!"));
 
         BeanUtils.copyProperties(updatedClient, client, "id", "doctor");
+
+        // Encrypt all fields before saving
+        encryptionUtil.encryptAllFields(client);
+
         Client updatedClientObj = clientRepository.save(client);
 
         return ClientMapper.mapToClientDto(updatedClientObj);

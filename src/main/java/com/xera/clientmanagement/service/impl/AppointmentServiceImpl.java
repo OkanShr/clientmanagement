@@ -25,31 +25,34 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
     private final AppointmentPdfRepository appointmentPdfRepository;
     private final PdfFileRepository pdfFileRepository;
-    private ClientRepository clientRepository;
-    private UserRepository userRepository;
+    private final ClientRepository clientRepository;
+    private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
-
+    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
 
     @Override
     @Transactional
     public Appointment createAppointment(AppointmentDto appointmentDto) {
-    try {
-        Appointment appointment = new Appointment();
-        BeanUtils.copyProperties(appointmentDto, appointment);
+        try {
+            Appointment appointment = new Appointment();
+            BeanUtils.copyProperties(appointmentDto, appointment);
 
-        Client client = clientRepository.findById(appointmentDto.getClientId())
-                .orElseThrow(() -> new EntityNotFoundException("Client Not Found"));
+            Client client = clientRepository.findById(appointmentDto.getClientId())
+                    .orElseThrow(() -> new EntityNotFoundException("Client Not Found"));
 
-        appointment.setClient(client);
+            appointment.setClient(client);
 
-        return appointmentRepository.save(appointment);
-    } catch (EntityNotFoundException e) {
-        throw new ResourceNotFoundException("Could not create appointment");
+            // Encrypt all fields of the appointment before saving
+            encryptionUtil.encryptAllFields(appointment);
+
+            return appointmentRepository.save(appointment);
+        } catch (EntityNotFoundException e) {
+            throw new ResourceNotFoundException("Could not create appointment");
+        }
     }
-}
 
 
 
@@ -71,7 +74,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         for (Client client : clients) {
             List<Appointment> appointments = appointmentRepository.findAllByClient_ClientId(client.getClientId());
             allAppointments.addAll(appointments.stream()
-                    .map(AppointmentMapper::mapToAppointmentDto)
+                    .map(appointment -> {
+                        encryptionUtil.decryptAllFields(appointment);
+                        return AppointmentMapper.mapToAppointmentDto(appointment);
+                    })
                     .toList());
         }
         return allAppointments;
@@ -80,27 +86,37 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public AppointmentDto getAppointmentById(Long appointmentId) {
-        Appointment appoointment = appointmentRepository.findById(appointmentId).orElseThrow(()-> new ResourceNotFoundException("Appointment Not Found"));
-        return AppointmentMapper.mapToAppointmentDto(appoointment);
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment Not Found"));
+
+        // Decrypt all fields after retrieving
+        encryptionUtil.decryptAllFields(appointment);
+
+        return AppointmentMapper.mapToAppointmentDto(appointment);
     }
 
     @Override
     public List<AppointmentDto> getAppointmentsByClientId(Long clientId) {
         List<Appointment> appointments = appointmentRepository.findAllByClient_ClientId(clientId);
         return appointments.stream()
-                .map(AppointmentMapper::mapToAppointmentDto)
+                .map(appointment -> {
+                    // Decrypt all fields for each appointment
+                    encryptionUtil.decryptAllFields(appointment);
+                    return AppointmentMapper.mapToAppointmentDto(appointment);
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
-    public AppointmentDto updateAppointment(Long appointmentId, AppointmentDto updatedAppointment){
-        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(
-                () -> new ResourceNotFoundException("Appointment Not Found!")
-        );
+    public AppointmentDto updateAppointment(Long appointmentId, AppointmentDto updatedAppointment) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment Not Found!"));
 
         appointment.setActivity(updatedAppointment.getActivity());
-
         appointment.setDate(updatedAppointment.getDate());
+
+        // Encrypt all fields before saving
+        encryptionUtil.encryptAllFields(appointment);
 
         Appointment updatedAppointmentObj = appointmentRepository.save(appointment);
 
@@ -129,7 +145,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Map<String, Long> getAppointmentsCountByType() {
-        List<String> types = List.of("Surgery", "Consulting", "Botox", "Example");
+        List<String> types = List.of("Surgery", "Consulting", "Injection", "Example");
         Map<String, Long> appointmentsCountByType = new HashMap<>();
         for (String type : types) {
             long count = appointmentRepository.findAllByType(type).size();
