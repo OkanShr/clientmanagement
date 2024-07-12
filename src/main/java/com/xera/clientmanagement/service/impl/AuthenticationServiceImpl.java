@@ -6,6 +6,7 @@ import com.xera.clientmanagement.dto.SignInRequest;
 import com.xera.clientmanagement.dto.SignUpRequest;
 import com.xera.clientmanagement.entity.Doctor;
 import com.xera.clientmanagement.entity.Role;
+import com.xera.clientmanagement.exception.InvalidLoginException;
 import com.xera.clientmanagement.repository.UserRepository;
 import com.xera.clientmanagement.service.AuthenticationService;
 import com.xera.clientmanagement.service.JwtService;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -43,12 +45,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 
     public JwtAuthenticationResponse signin(SignInRequest signInRequest){
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(signInRequest.getEmail(),signInRequest.getPassword()));
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(signInRequest.getEmail(),signInRequest.getPassword()));
+        } catch (AuthenticationException e){
+            throw new InvalidLoginException("Invalid email or password.");
+        }
 
         var user = userRepository.findByEmail(signInRequest.getEmail()).orElseThrow(()-> new IllegalArgumentException("Invalid email or password."));
-
         var jwt = jwtService.generateToken(user);
-
         var refreshToken = jwtService.generateRefreshToken(new HashMap<>(), user);
 
         JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse();
