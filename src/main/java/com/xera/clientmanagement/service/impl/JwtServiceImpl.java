@@ -18,21 +18,25 @@ public class JwtServiceImpl implements JwtService{
 
 
 
-    public String generateToken(UserDetails userDetails){
-        return Jwts.builder().setSubject(userDetails.getUsername())
+    public String generateToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
                 .signWith(getSiginKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String generateRefreshToken(Map<String,Object> extraClaims,UserDetails userDetails){
-        return Jwts.builder().setClaims(extraClaims).setSubject(userDetails.getUsername())
+    public String generateRefreshToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        return Jwts.builder()
+                .setClaims(extraClaims)
+                .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 10000 * 60 * 60 * 24))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
                 .signWith(getSiginKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     public String extractUsername(String token){
         return extractClaim(token, Claims::getSubject);
