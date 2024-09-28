@@ -20,14 +20,14 @@ public class ClientmanagementApplication implements CommandLineRunner {
 
 
 	public void run(String... args){
-		Doctor userAccount = userRepository.findByRole(Role.USER);
+		Doctor userAccount = userRepository.findByRole(Role.ADMIN);
 		if(null == userAccount){
 			Doctor doctor = new Doctor();
 
-			doctor.setEmail("admin");
-			doctor.setUsername("admin");
-			doctor.setPassword(new BCryptPasswordEncoder().encode("admin"));
-			doctor.setRole(Role.USER);
+			doctor.setEmail("admin2");
+			doctor.setUsername("admin2");
+			doctor.setPassword(new BCryptPasswordEncoder().encode("admin2"));
+			doctor.setRole(Role.ADMIN);
 			userRepository.save(doctor);
 		}
 	}

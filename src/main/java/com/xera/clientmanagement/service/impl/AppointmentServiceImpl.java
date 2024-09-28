@@ -145,7 +145,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Map<String, Long> getAppointmentsCountByType() {
-        List<String> types = List.of("Surgery", "Consulting", "Injection", "Example");
+        List<String> types = List.of("Operation", "Beratung", "Injektion", "Laser");
         Map<String, Long> appointmentsCountByType = new HashMap<>();
         for (String type : types) {
             long count = appointmentRepository.findAllByType(type).size();

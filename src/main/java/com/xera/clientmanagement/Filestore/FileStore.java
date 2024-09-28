@@ -78,6 +78,6 @@ public class FileStore {
     private boolean isPDF(String fileName) {
         System.out.println("Checking file extension...");
         String lowerCaseName = fileName.toLowerCase();
-        return lowerCaseName.endsWith(".pdf") || lowerCaseName.endsWith(".docx");
+        return lowerCaseName.endsWith(".pdf") || lowerCaseName.endsWith(".docx")|| lowerCaseName.endsWith(".doc");
     }
 }

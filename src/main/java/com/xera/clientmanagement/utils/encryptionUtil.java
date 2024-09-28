@@ -5,7 +5,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.lang.reflect.Field;
 import java.security.GeneralSecurityException;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Date;
 
 import com.xera.clientmanagement.config.EncryptionConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,37 +47,64 @@ public class encryptionUtil {
         }
     }
 
-    public <T> T encryptAllFields(T object) {
-        try {
-            for (Field field : object.getClass().getDeclaredFields()) {
+    public Object encryptAllFields(Object object) {
+        Field[] fields = object.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            try {
                 field.setAccessible(true);
-                if (field.getType() == String.class) {
-                    String value = (String) field.get(object);
-                    if (value != null) {
-                        field.set(object, encrypt(value));
+                Object fieldValue = field.get(object);
+
+                // Check if the field is of type String, Integer (int), or Date
+                if (fieldValue != null) {
+                    if (field.getType() == String.class) {
+                        // Encrypt String fields
+                        String encryptedValue = encrypt((String) fieldValue); // Assuming encrypt() is defined
+                        field.set(object, encryptedValue);
+                    } else if (field.getType() == int.class || field.getType() == Integer.class) {
+                        // Encrypt Integer fields
+                        String encryptedValue = encrypt(String.valueOf(fieldValue)); // Convert int to String for encryption
+                        field.set(object, Integer.valueOf(encryptedValue)); // Convert back to Integer
+                    } else if (field.getType() == Date.class) {
+                        // Encrypt Date fields
+                        String encryptedValue = encrypt(fieldValue.toString()); // Convert Date to String
+                        field.set(object, new SimpleDateFormat("yyyy-MM-dd").parse(encryptedValue)); // Parse encrypted string back to Date
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace(); // Handle exceptions appropriately
             }
-            return object;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
+        return object;
     }
 
-    public <T> T decryptAllFields(T object) {
-        try {
-            for (Field field : object.getClass().getDeclaredFields()) {
+    public Object decryptAllFields(Object object) {
+        Field[] fields = object.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            try {
                 field.setAccessible(true);
-                if (field.getType() == String.class) {
-                    String value = (String) field.get(object);
-                    if (value != null) {
-                        field.set(object, decrypt(value));
+                Object fieldValue = field.get(object);
+
+                // Check if the field is of type String, Integer (int), or Date
+                if (fieldValue != null) {
+                    if (field.getType() == String.class) {
+                        // Decrypt String fields
+                        String decryptedValue = decrypt((String) fieldValue); // Assuming decrypt() is defined
+                        field.set(object, decryptedValue);
+                    } else if (field.getType() == int.class || field.getType() == Integer.class) {
+                        // Decrypt Integer fields
+                        String decryptedValue = decrypt(String.valueOf(fieldValue)); // Decrypt as String
+                        field.set(object, Integer.valueOf(decryptedValue)); // Convert decrypted String back to Integer
+                    } else if (field.getType() == Date.class) {
+                        // Decrypt Date fields
+                        String decryptedValue = decrypt(fieldValue.toString()); // Decrypt as String
+                        field.set(object, new SimpleDateFormat("yyyy-MM-dd").parse(decryptedValue)); // Convert decrypted String back to Date
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace(); // Handle exceptions appropriately
             }
-            return object;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
+        return object;
     }
+
 }
