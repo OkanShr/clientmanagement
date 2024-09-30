@@ -147,10 +147,17 @@ public class AppointmentServiceImpl implements AppointmentService {
     public Map<String, Long> getAppointmentsCountByType() {
         List<String> types = List.of("Operation", "Beratung", "Injektion", "Laser");
         Map<String, Long> appointmentsCountByType = new HashMap<>();
+
+        List<Appointment> allAppointments = appointmentRepository.findAll();
+
         for (String type : types) {
-            long count = appointmentRepository.findAllByType(type).size();
+            long count = allAppointments.stream()
+                    .peek(encryptionUtil::decryptAllFields) // Decrypt all fields including the type
+                    .filter(appointment -> type.equals(appointment.getType())) // Filter by decrypted type
+                    .count(); // Count the matches
             appointmentsCountByType.put(type, count);
         }
+
         return appointmentsCountByType;
     }
 
