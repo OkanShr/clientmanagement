@@ -14,13 +14,15 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public final UserDetailsService userDetailsService(){
+    public final UserDetailsService userDetailsService() {
         return new UserDetailsService() {
             @Override
-            public UserDetails loadUserByUsername(String username) {
-
-                return userRepository.findByEmail(username).orElseThrow(()-> new UsernameNotFoundException("User not Found"));
+            public UserDetails loadUserByUsername(String email) {
+                // Assume we are directly using email here
+                return userRepository.findByEmail(email)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not Found"));
             }
         };
     }
+
 }

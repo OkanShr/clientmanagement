@@ -4,10 +4,13 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.xera.clientmanagement.config.EncryptionConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ public class encryptionUtil {
 
     private final String algorithm;
     private final SecretKey secretKey;
+    private static final Logger log = LoggerFactory.getLogger(encryptionUtil.class);
 
     @Autowired
     public encryptionUtil(EncryptionConfig encryptionConfig) {
@@ -49,62 +53,70 @@ public class encryptionUtil {
 
     public Object encryptAllFields(Object object) {
         Field[] fields = object.getClass().getDeclaredFields();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd"); // Consistent date format
+
         for (Field field : fields) {
             try {
                 field.setAccessible(true);
                 Object fieldValue = field.get(object);
 
-                // Check if the field is of type String, Integer (int), or Date
-                if (fieldValue != null) {
+                // Skip null, static, or final fields
+                if (fieldValue != null && !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
                     if (field.getType() == String.class) {
                         // Encrypt String fields
-                        String encryptedValue = encrypt((String) fieldValue); // Assuming encrypt() is defined
+                        String encryptedValue = encrypt((String) fieldValue);
                         field.set(object, encryptedValue);
                     } else if (field.getType() == int.class || field.getType() == Integer.class) {
-                        // Encrypt Integer fields
-                        String encryptedValue = encrypt(String.valueOf(fieldValue)); // Convert int to String for encryption
-                        field.set(object, Integer.valueOf(encryptedValue)); // Convert back to Integer
+                        // Encrypt Integer fields (store as strings after encryption)
+                        String encryptedValue = encrypt(String.valueOf(fieldValue)); // Encrypt integer as string
+                        field.set(object, encryptedValue); // Store as a string
                     } else if (field.getType() == Date.class) {
                         // Encrypt Date fields
-                        String encryptedValue = encrypt(fieldValue.toString()); // Convert Date to String
-                        field.set(object, new SimpleDateFormat("yyyy-MM-dd").parse(encryptedValue)); // Parse encrypted string back to Date
+                        String encryptedValue = encrypt(dateFormat.format((Date) fieldValue)); // Format date and encrypt
+                        field.set(object, encryptedValue); // Store the encrypted string
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace(); // Handle exceptions appropriately
+                log.error("Error encrypting field: " + field.getName(), e);
+                throw new RuntimeException("Encryption failed for field: " + field.getName(), e);
             }
         }
         return object;
     }
+
 
     public Object decryptAllFields(Object object) {
         Field[] fields = object.getClass().getDeclaredFields();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd"); // Consistent date format
+
         for (Field field : fields) {
             try {
                 field.setAccessible(true);
                 Object fieldValue = field.get(object);
 
-                // Check if the field is of type String, Integer (int), or Date
-                if (fieldValue != null) {
+                // Skip null, static, or final fields
+                if (fieldValue != null && !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
                     if (field.getType() == String.class) {
                         // Decrypt String fields
-                        String decryptedValue = decrypt((String) fieldValue); // Assuming decrypt() is defined
+                        String decryptedValue = decrypt((String) fieldValue);
                         field.set(object, decryptedValue);
                     } else if (field.getType() == int.class || field.getType() == Integer.class) {
-                        // Decrypt Integer fields
-                        String decryptedValue = decrypt(String.valueOf(fieldValue)); // Decrypt as String
-                        field.set(object, Integer.valueOf(decryptedValue)); // Convert decrypted String back to Integer
+                        // Decrypt Integer fields (consider storing as strings after decryption)
+                        String decryptedValue = decrypt(fieldValue.toString()); // Decrypt as string
+                        field.set(object, Integer.valueOf(decryptedValue)); // Convert to integer if encryption produces numeric values
                     } else if (field.getType() == Date.class) {
                         // Decrypt Date fields
-                        String decryptedValue = decrypt(fieldValue.toString()); // Decrypt as String
-                        field.set(object, new SimpleDateFormat("yyyy-MM-dd").parse(decryptedValue)); // Convert decrypted String back to Date
+                        String decryptedValue = decrypt(dateFormat.format((Date) fieldValue)); // Format date before decrypting
+                        field.set(object, dateFormat.parse(decryptedValue)); // Parse back to date
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace(); // Handle exceptions appropriately
+                log.error("Error decrypting field: " + field.getName(), e);
+                throw new RuntimeException("Decryption failed for field: " + field.getName(), e);
             }
         }
         return object;
     }
+
 
 }
