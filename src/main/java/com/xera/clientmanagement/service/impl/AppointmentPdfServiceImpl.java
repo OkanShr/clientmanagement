@@ -1,5 +1,6 @@
 package com.xera.clientmanagement.service.impl;
 
+
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
@@ -12,9 +13,10 @@ import com.xera.clientmanagement.repository.AppointmentPdfRepository;
 import com.xera.clientmanagement.repository.AppointmentRepository;
 import com.xera.clientmanagement.repository.PdfFileRepository;
 import com.xera.clientmanagement.service.AppointmentPdfService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.xera.clientmanagement.utils.encryptionUtil;
 
 import java.io.IOException;
 import java.net.URL;
@@ -23,7 +25,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+
 @Service
+@AllArgsConstructor
 public class AppointmentPdfServiceImpl implements AppointmentPdfService {
 
     private final AmazonS3 amazonS3;
@@ -31,15 +35,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     private final AppointmentRepository appointmentRepository;
     private final AppointmentPdfRepository appointmentPdfRepository;
     private final PdfFileRepository pdfFileRepository;
-
-    @Autowired
-    public AppointmentPdfServiceImpl(AmazonS3 amazonS3, FileStore fileStore, AppointmentRepository appointmentRepository, AppointmentPdfRepository appointmentPdfRepository, PdfFileRepository pdfFileRepository) {
-        this.amazonS3 = amazonS3;
-        this.fileStore = fileStore;
-        this.appointmentRepository = appointmentRepository;
-        this.appointmentPdfRepository = appointmentPdfRepository;
-        this.pdfFileRepository = pdfFileRepository;
-    }
+    private final encryptionUtil encryptionUtil;
 
     @Override
     public List<PdfFile> getAppointmentPdfs(Long appointmentId, Long clientId) {
@@ -48,6 +44,8 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
 
         for (AppointmentPdf appointmentPdfMetadata : appointmentPdfsMetadata) {
             PdfFile pdfFile = appointmentPdfMetadata.getPdfFile();
+            encryptionUtil.decryptAllFields(pdfFile); // Decrypt the fields of the PdfFile
+
             String key = buildS3Key(appointmentId, clientId, pdfFile.getFileName());
             String pdfUrl = generatePresignedUrl(key);
             pdfFile.setFilePath(pdfUrl);
@@ -87,6 +85,8 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
         pdfFile.setFileName(fileName);
         pdfFile.setType(type);
         pdfFile.setFilePath(clientId + "/pdfs/" + appointmentId + "/" + fileName);
+
+        encryptionUtil.encryptAllFields(pdfFile); // Encrypt all fields of the PdfFile
         pdfFileRepository.save(pdfFile);
 
         AppointmentPdf appointmentPdf = new AppointmentPdf();

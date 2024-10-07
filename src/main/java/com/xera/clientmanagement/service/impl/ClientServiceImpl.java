@@ -35,7 +35,7 @@ public class ClientServiceImpl implements ClientService {
     private final AppointmentPdfRepository appointmentPdfRepository;
     private final PdfFileRepository pdfFileRepository;
     private final ClientPdfRepository clientPdfRepository;
-    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
+    private final encryptionUtil encryptionUtil;
 
 
     @Override

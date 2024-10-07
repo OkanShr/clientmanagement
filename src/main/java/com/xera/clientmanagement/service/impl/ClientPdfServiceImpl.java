@@ -12,7 +12,8 @@ import com.xera.clientmanagement.repository.ClientPdfRepository;
 import com.xera.clientmanagement.repository.ClientRepository;
 import com.xera.clientmanagement.repository.PdfFileRepository;
 import com.xera.clientmanagement.service.ClientPdfService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.xera.clientmanagement.utils.encryptionUtil;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,26 +25,18 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class ClientPdfServiceImpl implements ClientPdfService {
 
     private static final String BUCKET_NAME = "xeramedimages";
-    private static final long URL_EXPIRATION_TIME = 3600000; // 1 hour
+    private static final long URL_EXPIRATION_TIME = 600000; // 10 min
 
     private final AmazonS3 amazonS3;
     private final FileStore fileStore;
     private final ClientRepository clientRepository;
     private final ClientPdfRepository clientPdfRepository;
     private final PdfFileRepository pdfFileRepository;
-
-    @Autowired
-    public ClientPdfServiceImpl(AmazonS3 amazonS3, FileStore fileStore, ClientRepository clientRepository,
-                                ClientPdfRepository clientPdfRepository, PdfFileRepository pdfFileRepository) {
-        this.amazonS3 = amazonS3;
-        this.fileStore = fileStore;
-        this.clientRepository = clientRepository;
-        this.clientPdfRepository = clientPdfRepository;
-        this.pdfFileRepository = pdfFileRepository;
-    }
+    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
 
     @Override
     public List<PdfFile> getClientPdfs(Long clientId) {
@@ -54,6 +47,8 @@ public class ClientPdfServiceImpl implements ClientPdfService {
 
     private PdfFile mapToPdfFileWithPresignedUrl(ClientPdf clientPdf) {
         PdfFile pdfFile = clientPdf.getPdfFile();
+        encryptionUtil.decryptAllFields(pdfFile); // Decrypt the fields of the PdfFile
+
         String key = generateS3Key(clientPdf.getClient().getClientId(), pdfFile.getFileName());
         pdfFile.setFilePath(generatePresignedUrl(key));
         return pdfFile;
@@ -90,6 +85,8 @@ public class ClientPdfServiceImpl implements ClientPdfService {
         pdfFile.setFileName(fileName);
         pdfFile.setType(type);
         pdfFile.setFilePath(generateS3Key(clientId, fileName));
+
+        encryptionUtil.encryptAllFields(pdfFile); // Encrypt all fields of the PdfFile
         pdfFileRepository.save(pdfFile);
 
         ClientPdf clientPdf = new ClientPdf();
