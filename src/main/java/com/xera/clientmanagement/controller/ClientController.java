@@ -21,6 +21,8 @@ import java.util.Map;
 @RequestMapping("/api/client")
 public class ClientController {
     private final ClientService clientService;
+
+
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<Client> createClient(@RequestBody ClientDto clientDto) {

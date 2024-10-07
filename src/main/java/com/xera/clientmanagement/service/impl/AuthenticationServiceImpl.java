@@ -4,6 +4,7 @@ import com.xera.clientmanagement.dto.JwtAuthenticationResponse;
 import com.xera.clientmanagement.dto.RefreshTokenRequest;
 import com.xera.clientmanagement.dto.SignInRequest;
 import com.xera.clientmanagement.dto.SignUpRequest;
+import com.xera.clientmanagement.dto.DoctorResponse;
 import com.xera.clientmanagement.entity.Doctor;
 import com.xera.clientmanagement.entity.Role;
 import com.xera.clientmanagement.exception.InvalidLoginException;
@@ -29,7 +30,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final encryptionUtil encryptionUtil; // Ensure this is autowired correctly
+    private final encryptionUtil encryptionUtil;
 
     public Doctor signup(SignUpRequest signUpRequest) {
         Doctor doctor = new Doctor();
@@ -44,7 +45,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     public JwtAuthenticationResponse signin(SignInRequest signInRequest) {
-        String username = signInRequest.getUsername(); // Get username from request
+        String username = signInRequest.getUsername();
 
         try {
             // Authenticate using username and password
@@ -59,31 +60,54 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
 
+        String decryptedEmail = encryptionUtil.decrypt(user.getEmail());
+
         // Generate JWT and refresh token
         var jwt = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(new HashMap<>(), user);
 
-        // Create a response object
+
+        DoctorResponse doctorResponse = new DoctorResponse(
+                user.getUserId(),
+                user.getUsername(),
+                decryptedEmail,
+                user.getRole()
+        );
+
         JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse();
         jwtAuthenticationResponse.setToken(jwt);
         jwtAuthenticationResponse.setRefreshToken(refreshToken);
-        jwtAuthenticationResponse.setDoctor(user); // Pass the doctor object (consider using a DTO)
+        jwtAuthenticationResponse.setDoctor(doctorResponse);
 
         return jwtAuthenticationResponse;
     }
 
     public JwtAuthenticationResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         String username = jwtService.extractUsername(refreshTokenRequest.getToken());
+
         Doctor doctor = userRepository.findByUsername(username).orElseThrow();
+
         if (jwtService.isTokenValid(refreshTokenRequest.getToken(), doctor)) {
             var jwt = jwtService.generateToken(doctor);
+
+            String decryptedEmail = encryptionUtil.decrypt(doctor.getEmail());
+
+            DoctorResponse doctorResponse = new DoctorResponse(
+                    doctor.getUserId(),
+                    doctor.getUsername(),
+                    decryptedEmail,
+                    doctor.getRole()
+            );
 
             JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse();
             jwtAuthenticationResponse.setToken(jwt);
             jwtAuthenticationResponse.setRefreshToken(refreshTokenRequest.getToken());
-            jwtAuthenticationResponse.setDoctor(doctor);
+            jwtAuthenticationResponse.setDoctor(doctorResponse);
+
             return jwtAuthenticationResponse;
         }
+
         return null;
     }
+
 }

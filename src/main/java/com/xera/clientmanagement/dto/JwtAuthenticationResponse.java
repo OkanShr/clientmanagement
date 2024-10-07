@@ -7,6 +7,6 @@ import lombok.Data;
 public class JwtAuthenticationResponse {
     private String token;
     private String refreshToken;
-    private Doctor doctor;
+    private DoctorResponse doctor;
 
 }
