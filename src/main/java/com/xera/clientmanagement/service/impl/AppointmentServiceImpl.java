@@ -31,7 +31,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
-    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
+//    private final com.xera.clientmanagement.utils.encryptionUtil encryptionUtil;
 
     @Override
     @Transactional
@@ -46,7 +46,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointment.setClient(client);
 
             // Encrypt all fields of the appointment before saving
-            encryptionUtil.encryptAllFields(appointment);
+//            encryptionUtil.encryptAllFields(appointment);
 
             return appointmentRepository.save(appointment);
         } catch (EntityNotFoundException e) {
@@ -75,7 +75,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             List<Appointment> appointments = appointmentRepository.findAllByClient_ClientId(client.getClientId());
             allAppointments.addAll(appointments.stream()
                     .map(appointment -> {
-                        encryptionUtil.decryptAllFields(appointment);
+//                        encryptionUtil.decryptAllFields(appointment);
                         return AppointmentMapper.mapToAppointmentDto(appointment);
                     })
                     .toList());
@@ -90,7 +90,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment Not Found"));
 
         // Decrypt all fields after retrieving
-        encryptionUtil.decryptAllFields(appointment);
+//        encryptionUtil.decryptAllFields(appointment);
 
         return AppointmentMapper.mapToAppointmentDto(appointment);
     }
@@ -98,12 +98,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<AppointmentDto> getAppointmentsByClientId(Long clientId) {
         List<Appointment> appointments = appointmentRepository.findAllByClient_ClientId(clientId);
+        // Decrypt all fields for each appointment
+        //                    encryptionUtil.decryptAllFields(appointment);
         return appointments.stream()
-                .map(appointment -> {
-                    // Decrypt all fields for each appointment
-                    encryptionUtil.decryptAllFields(appointment);
-                    return AppointmentMapper.mapToAppointmentDto(appointment);
-                })
+                .map(AppointmentMapper::mapToAppointmentDto)
                 .collect(Collectors.toList());
     }
 
@@ -116,7 +114,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setDate(updatedAppointment.getDate());
 
         // Encrypt all fields before saving
-        encryptionUtil.encryptAllFields(appointment);
+//        encryptionUtil.encryptAllFields(appointment);
 
         Appointment updatedAppointmentObj = appointmentRepository.save(appointment);
 
@@ -152,7 +150,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         for (String type : types) {
             long count = allAppointments.stream()
-                    .peek(encryptionUtil::decryptAllFields) // Decrypt all fields including the type
+//                    .peek(encryptionUtil::decryptAllFields)
                     .filter(appointment -> type.equals(appointment.getType())) // Filter by decrypted type
                     .count(); // Count the matches
             appointmentsCountByType.put(type, count);

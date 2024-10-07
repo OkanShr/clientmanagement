@@ -48,7 +48,9 @@ public class ClientServiceImpl implements ClientService {
 
         client.setDoctor(doctor);
 
-        // Encrypt all fields before saving
+        if (clientDto.getBirthDate() != null) {
+            client.setEncryptedBirthDate(encryptionUtil.encryptLocalDate(clientDto.getBirthDate()));
+        }
         encryptionUtil.encryptAllFields(client);
 
         try {
@@ -68,6 +70,10 @@ public class ClientServiceImpl implements ClientService {
         // Decrypt all fields after retrieving
         encryptionUtil.decryptAllFields(client);
 
+        if (client.getEncryptedBirthDate() != null) {
+            client.setBirthDate(encryptionUtil.decryptLocalDate(client.getEncryptedBirthDate()));
+        }
+
         return ClientMapper.mapToClientDto(client);
     }
 
@@ -80,7 +86,11 @@ public class ClientServiceImpl implements ClientService {
         return clientRepository.findByDoctor(doctor).stream()
                 .map(client -> {
                     // Decrypt all fields for each client
+
                     encryptionUtil.decryptAllFields(client);
+                    if (client.getEncryptedBirthDate() != null) {
+                        client.setBirthDate(encryptionUtil.decryptLocalDate(client.getEncryptedBirthDate()));
+                    }
                     return ClientMapper.mapToClientDto(client);
                 })
                 .collect(Collectors.toList());
@@ -100,7 +110,9 @@ public class ClientServiceImpl implements ClientService {
 
         // Encrypt all fields before saving
         encryptionUtil.encryptAllFields(client);
-
+        if (client.getEncryptedBirthDate() != null) {
+            client.setBirthDate(encryptionUtil.decryptLocalDate(client.getEncryptedBirthDate()));
+        }
         Client updatedClientObj = clientRepository.save(client);
 
         return ClientMapper.mapToClientDto(updatedClientObj);

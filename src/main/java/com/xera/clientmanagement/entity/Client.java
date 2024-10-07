@@ -36,9 +36,26 @@ public class Client {
     private String gender;
 
     @Column(name = "birth_date")
-    @DateTimeFormat(pattern = "dd/MM/yyyy")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+    private String encryptedBirthDate;
+
+    @Transient
     private LocalDate birthDate;
+
+    public String getEncryptedBirthDate() {
+        return encryptedBirthDate;
+    }
+
+    public void setEncryptedBirthDate(String encryptedBirthDate) {
+        this.encryptedBirthDate = encryptedBirthDate;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
 
     private String phoneNumber;
 

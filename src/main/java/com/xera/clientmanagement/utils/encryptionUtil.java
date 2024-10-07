@@ -7,6 +7,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Date;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ public class encryptionUtil {
     private final String algorithm;
     private final SecretKey secretKey;
     private static final Logger log = LoggerFactory.getLogger(encryptionUtil.class);
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Autowired
     public encryptionUtil(EncryptionConfig encryptionConfig) {
@@ -51,6 +54,22 @@ public class encryptionUtil {
         }
     }
 
+    public String encryptLocalDate(LocalDate localDate) {
+        if (localDate == null) {
+            return null;
+        }
+        String dateString = localDate.format(dateFormatter);
+        return encrypt(dateString); // Use your existing encrypt method
+    }
+
+    public LocalDate decryptLocalDate(String encryptedDate) {
+        if (encryptedDate == null) {
+            return null;
+        }
+        String decryptedDateString = decrypt(encryptedDate); // Use your existing decrypt method
+        return LocalDate.parse(decryptedDateString, dateFormatter);
+    }
+
     public Object encryptAllFields(Object object) {
         Field[] fields = object.getClass().getDeclaredFields();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd"); // Consistent date format
@@ -70,10 +89,6 @@ public class encryptionUtil {
                         // Encrypt Integer fields (store as strings after encryption)
                         String encryptedValue = encrypt(String.valueOf(fieldValue)); // Encrypt integer as string
                         field.set(object, encryptedValue); // Store as a string
-                    } else if (field.getType() == Date.class) {
-                        // Encrypt Date fields
-                        String encryptedValue = encrypt(dateFormat.format((Date) fieldValue)); // Format date and encrypt
-                        field.set(object, encryptedValue); // Store the encrypted string
                     }
                 }
             } catch (Exception e) {
