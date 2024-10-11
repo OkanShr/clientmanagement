@@ -10,7 +10,7 @@ import com.xera.clientmanagement.entity.ClientImages;
 import com.xera.clientmanagement.repository.ClientImageRepository;
 import com.xera.clientmanagement.repository.ClientRepository;
 import com.xera.clientmanagement.service.ClientImageService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,20 +22,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@AllArgsConstructor
 public class ClientImageServiceImpl implements ClientImageService {
 
     private final AmazonS3 amazonS3;
     private final FileStore fileStore;
     private final ClientRepository clientRepository;
     private final ClientImageRepository clientImageRepository;
-
-    @Autowired
-    public ClientImageServiceImpl(AmazonS3 amazonS3, FileStore fileStore, ClientRepository clientRepository, ClientImageRepository clientImageRepository) {
-        this.amazonS3 = amazonS3;
-        this.fileStore = fileStore;
-        this.clientRepository = clientRepository;
-        this.clientImageRepository = clientImageRepository;
-    }
 
     @Override
     public List<ClientImages> getClientImages(Long clientId) {
@@ -72,7 +65,7 @@ public class ClientImageServiceImpl implements ClientImageService {
 
     private String generatePresignedUrl(String key) {
         // Generate a pre-signed URL for the image
-        String bucketName = "xeramedimages"; // Bucket name
+        String bucketName = "auraaesthfiles"; // Bucket name
         Date expiration = new Date(System.currentTimeMillis() + 3600000); // Expiry time: 1 hour from now
 
         GeneratePresignedUrlRequest generatePresignedUrlRequest =
@@ -127,7 +120,7 @@ public class ClientImageServiceImpl implements ClientImageService {
         String key = clientId + "/images/" + clientImage.getFileName();
 
         // Delete the image from S3
-        amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
+        amazonS3.deleteObject(new DeleteObjectRequest("auraaesthfiles", key));
 
         // Remove image metadata from the database
         clientImageRepository.delete(clientImage);

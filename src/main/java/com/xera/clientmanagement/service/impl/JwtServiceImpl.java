@@ -13,9 +13,12 @@ import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Service
 public class JwtServiceImpl implements JwtService{
 
+    @Value("${secretKey}") String secretKey;
 
 
     public String generateToken(UserDetails userDetails) {
@@ -49,11 +52,8 @@ public class JwtServiceImpl implements JwtService{
 
 
     private Key getSiginKey(){
-//        SecureRandom random = new SecureRandom();
-//        byte[] keyBytes = new byte[32]; // 256 bits (32 bytes) is a common choice for HMAC-SHA256
-//        random.nextBytes(keyBytes);
+//
 
-        String secretKey = "t2UMjqEI6H+jbD8wcJx7XBXyGG+nD/ir2hk8J92vO+Q=";
 
         byte[] key = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(key);

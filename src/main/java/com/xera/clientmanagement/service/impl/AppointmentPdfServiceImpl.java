@@ -108,7 +108,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
         }
 
         String key = buildS3Key(appointmentId, clientId, appointmentPdf.getPdfFile().getFileName());
-        amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
+        amazonS3.deleteObject(new DeleteObjectRequest("auraaesthfiles", key));
 
         appointmentPdfRepository.delete(appointmentPdf);
         pdfFileRepository.delete(appointmentPdf.getPdfFile());
@@ -117,7 +117,7 @@ public class AppointmentPdfServiceImpl implements AppointmentPdfService {
     private String generatePresignedUrl(String key) {
         Date expiration = new Date(System.currentTimeMillis() + 3600000); // 1 hour from now
         GeneratePresignedUrlRequest generatePresignedUrlRequest =
-                new GeneratePresignedUrlRequest("xeramedimages", key)
+                new GeneratePresignedUrlRequest("auraaesthfiles", key)
                         .withMethod(HttpMethod.GET)
                         .withExpiration(expiration);
 

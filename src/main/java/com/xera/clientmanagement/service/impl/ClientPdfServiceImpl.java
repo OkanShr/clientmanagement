@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ClientPdfServiceImpl implements ClientPdfService {
 
-    private static final String BUCKET_NAME = "xeramedimages";
+    private static final String BUCKET_NAME = "auraaesthfiles";
     private static final long URL_EXPIRATION_TIME = 600000; // 10 min
 
     private final AmazonS3 amazonS3;

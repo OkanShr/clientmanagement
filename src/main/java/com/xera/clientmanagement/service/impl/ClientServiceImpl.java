@@ -106,17 +106,25 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found!"));
 
-        BeanUtils.copyProperties(updatedClient, client, "id", "doctor");
-
-        // Encrypt all fields before saving
-        encryptionUtil.encryptAllFields(client);
+        encryptionUtil.decryptAllFields(client);
         if (client.getEncryptedBirthDate() != null) {
             client.setBirthDate(encryptionUtil.decryptLocalDate(client.getEncryptedBirthDate()));
         }
+
+        // Copy updated properties but avoid overwriting the 'id' and 'doctor'
+        BeanUtils.copyProperties(updatedClient, client, "id", "doctor");
+
+        // Re-encrypt fields after updating
+        if (updatedClient.getBirthDate() != null) {
+            client.setEncryptedBirthDate(encryptionUtil.encryptLocalDate(updatedClient.getBirthDate()));
+        }
+        encryptionUtil.encryptAllFields(client);
+
         Client updatedClientObj = clientRepository.save(client);
 
         return ClientMapper.mapToClientDto(updatedClientObj);
     }
+
 
     @Override
     public void deleteClient(Long clientId) {

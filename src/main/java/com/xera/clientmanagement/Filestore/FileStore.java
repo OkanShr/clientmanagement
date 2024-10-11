@@ -4,6 +4,7 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ import java.util.Optional;
 public class FileStore {
 
     private final AmazonS3 s3;
+    @Value("${amazon.s3.bucketName}") String bucketName;
 
     @Autowired
     public FileStore(AmazonS3 s3) {
@@ -51,7 +53,7 @@ public class FileStore {
                 }
             });
             metadata.setContentLength(inputStream.available());
-            s3.putObject("xeramedimages", s3Path, inputStream, metadata);
+            s3.putObject(bucketName, s3Path, inputStream, metadata);
         } catch (IOException | SdkClientException e) {
             throw new IllegalStateException("Failed to store file to S3: " + e.getMessage(), e);
         } finally {

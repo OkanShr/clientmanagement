@@ -13,6 +13,7 @@ import com.xera.clientmanagement.service.AuthenticationService;
 import com.xera.clientmanagement.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import com.xera.clientmanagement.utils.encryptionUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
+
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;

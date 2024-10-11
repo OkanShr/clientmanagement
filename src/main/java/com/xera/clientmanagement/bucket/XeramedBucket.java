@@ -2,7 +2,7 @@ package com.xera.clientmanagement.bucket;
 
 public enum XeramedBucket {
 
-    BUCKET("xeramedimages");
+    BUCKET("auraaesthfiles");
     private final String xeramedBucket;
 
     XeramedBucket(String xeramedBucket){
