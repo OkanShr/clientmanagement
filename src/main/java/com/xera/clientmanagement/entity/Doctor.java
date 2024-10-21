@@ -1,6 +1,5 @@
 package com.xera.clientmanagement.entity;
 
-
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,20 +19,26 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "doctors")
-
 public class Doctor implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
+
     @Column(nullable = false, unique = true)
     private String email;
+
     private String password;
+
     private String username;
+
+    @Enumerated(EnumType.STRING)
     private Role role;
-    @OneToMany(mappedBy = "doctor", cascade={CascadeType.ALL})
+
+    @OneToMany(mappedBy = "doctor", cascade = {CascadeType.ALL})
     @JsonManagedReference
     private List<Client> clients;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
@@ -56,6 +61,6 @@ public class Doctor implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true ;
+        return true;
     }
 }
