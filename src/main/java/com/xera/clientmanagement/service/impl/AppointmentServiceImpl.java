@@ -132,7 +132,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Delete all associated PDFs from S3 and repositories
         for (AppointmentPdf appointmentPdf : appointmentPdfs) {
             String key = buildS3Key(appointmentId, clientId, appointmentPdf.getPdfFile().getFileName());
-            amazonS3.deleteObject(new DeleteObjectRequest("xeramedimages", key));
+            amazonS3.deleteObject(new DeleteObjectRequest("auraaesthfiles", key));
             appointmentPdfRepository.delete(appointmentPdf);
             pdfFileRepository.delete(appointmentPdf.getPdfFile());
         }

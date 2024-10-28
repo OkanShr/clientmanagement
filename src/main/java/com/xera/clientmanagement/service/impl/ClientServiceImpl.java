@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ClientServiceImpl implements ClientService {
 
-    private static final String BUCKET_NAME = "xeramedimages";
+    private static final String BUCKET_NAME = "auraaesthfiles";
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
