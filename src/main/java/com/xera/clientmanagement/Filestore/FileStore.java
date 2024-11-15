@@ -73,7 +73,7 @@ public class FileStore {
     private boolean isImage(String fileName) {
         System.out.println("Checking file extension...");
         String lowerCaseName = fileName.toLowerCase();
-        return lowerCaseName.endsWith(".jpeg") || lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".png");
+        return lowerCaseName.endsWith(".jpeg") || lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".png") || lowerCaseName.endsWith(".heif") || lowerCaseName.endsWith(".hevc");
     }
 
     // Helper method to check if the file is a PDF

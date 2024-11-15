@@ -43,9 +43,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             userEmail = jwtService.extractUsername(jwt);
         } catch (ExpiredJwtException e) {
-            // Set an attribute on the request to indicate the token has expired
-            request.setAttribute("expired", e);
-            filterChain.doFilter(request, response);
+            // Directly respond with 401 if the token is expired
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("JWT token has expired");
+            return;
+        } catch (Exception e) {
+            // Respond with 401 for any other JWT-related errors
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid or malformed JWT token");
             return;
         }
 
@@ -53,16 +58,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = userService.userDetailsService().loadUserByUsername(userEmail);
 
             if (jwtService.isTokenValid(jwt, userDetails)) {
-                SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                securityContext.setAuthentication(token);
-                SecurityContextHolder.setContext(securityContext);
+                SecurityContextHolder.getContext().setAuthentication(token);
             }
         }
+
         filterChain.doFilter(request, response);
     }
+
 }
