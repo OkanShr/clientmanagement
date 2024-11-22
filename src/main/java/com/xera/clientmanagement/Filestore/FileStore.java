@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class FileStore {
@@ -71,10 +72,16 @@ public class FileStore {
 
     // Helper method to check if the file is an image
     private boolean isImage(String fileName) {
-        System.out.println("Checking file extension...");
+        if (fileName == null || fileName.isEmpty()) {
+            return false;
+        }
+        // Supported image extensions
+        Set<String> imageExtensions = Set.of(".jpeg", ".jpg", ".png", ".heif", ".hevc");
+
         String lowerCaseName = fileName.toLowerCase();
-        return lowerCaseName.endsWith(".jpeg") || lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".png") || lowerCaseName.endsWith(".heif") || lowerCaseName.endsWith(".hevc");
+        return imageExtensions.stream().anyMatch(lowerCaseName::endsWith);
     }
+
 
     // Helper method to check if the file is a PDF
     private boolean isPDF(String fileName) {
